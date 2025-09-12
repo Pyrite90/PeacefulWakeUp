@@ -10,69 +10,6 @@ import SwiftData
 import AVFoundation
 import MediaPlayer
 
-// Custom Slider to Cancel View
-struct SliderToCancelView: View {
-    @State private var sliderOffset: CGFloat = 0
-    @State private var sliderWidth: CGFloat = 0
-    let onCancel: () -> Void
-    
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                // Background track
-                RoundedRectangle(cornerRadius: 25)
-                    .fill(.white.opacity(0.2))
-                    .frame(height: 50)
-                
-                // Slider thumb
-                RoundedRectangle(cornerRadius: 22.5)
-                    .fill(.white.opacity(0.8))
-                    .frame(width: 45, height: 45)
-                    .offset(x: sliderOffset)
-                    .gesture(
-                        DragGesture()
-                            .onChanged { value in
-                                let maxOffset = geometry.size.width - 45
-                                sliderOffset = max(0, min(value.translation.width, maxOffset))
-                            }
-                            .onEnded { value in
-                                let maxOffset = geometry.size.width - 45
-                                
-                                if sliderOffset > maxOffset * 0.8 {
-                                    // Slider moved far enough - cancel alarm
-                                    withAnimation(.easeOut(duration: 0.3)) {
-                                        sliderOffset = maxOffset
-                                    }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                        onCancel()
-                                    }
-                                } else {
-                                    // Snap back to start
-                                    withAnimation(.easeOut(duration: 0.3)) {
-                                        sliderOffset = 0
-                                    }
-                                }
-                            }
-                    )
-                
-                // Cancel text
-                HStack {
-                    Spacer()
-                    Text("Cancel Alarm")
-                        .font(.headline)
-                        .fontWeight(.light)
-                        .foregroundColor(.white.opacity(0.6))
-                    Spacer()
-                }
-            }
-            .onAppear {
-                sliderWidth = geometry.size.width
-            }
-        }
-        .frame(height: 50)
-    }
-}
-
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var alarmTime: Date = Date().addingTimeInterval(3600)
@@ -99,17 +36,7 @@ struct ContentView: View {
     var body: some View {
         ZStack {
             // Sunrise gradient background - fills entire screen
-            LinearGradient(
-                colors: [
-                    Color(red: 1.0, green: 0.4, blue: 0.0),      // Deep orange
-                    Color(red: 1.0, green: 0.6, blue: 0.2),      // Orange
-                    Color(red: 1.0, green: 0.8, blue: 0.4),      // Light orange
-                    Color(red: 1.0, green: 0.95, blue: 0.7)      // Pale yellow
-                ],
-                startPoint: .bottom,
-                endPoint: .top
-            )
-            .ignoresSafeArea(.all)
+            SunriseBackgroundView()
             
             // Main content
             VStack(spacing: 0) {
@@ -120,166 +47,65 @@ struct ContentView: View {
                     .padding(.top, 50)
                     .padding(.bottom, 20)
                     .onTapGesture {
-                        if showingAlarmSetter {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                showingAlarmSetter = false
-                            }
-                        }
+                        handleTapToDismissAlarmSetter()
                     }
                 
                 Spacer()
                     .onTapGesture {
-                        if showingAlarmSetter {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                showingAlarmSetter = false
-                            }
-                        }
+                        handleTapToDismissAlarmSetter()
                     }
                 
-                // Current time display - centered vertically
-                Text(currentTime, format: Date.FormatStyle()
-                    .hour(.twoDigits(amPM: .omitted))
-                    .minute(.twoDigits)
-                    .second(.twoDigits))
-                    .font(.system(size: 48, weight: .light, design: .rounded))
-                    .foregroundColor(.white.opacity(0.9))
-                    .onTapGesture {
-                        if showingAlarmSetter {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                showingAlarmSetter = false
-                            }
-                        }
-                    }
-                
-                // Active alarm time display right under current time
-                if isAlarmSet {
-                    Text("Alarm: \(alarmTime, format: Date.FormatStyle(date: .omitted, time: .shortened))")
-                        .font(.title3)
-                        .fontWeight(.light)
-                        .foregroundColor(.white.opacity(0.7))
-                        .padding(.top, 10)
-                        .onTapGesture {
-                            if showingAlarmSetter {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    showingAlarmSetter = false
-                                }
-                            }
-                        }
-                    
-                    // Time remaining until alarm
-                    Text(timeUntilAlarm)
-                        .font(.title3)
-                        .fontWeight(.light)
-                        .foregroundColor(.white.opacity(0.6))
-                        .padding(.top, 5)
-                        .onTapGesture {
-                            if showingAlarmSetter {
-                                withAnimation(.easeInOut(duration: 0.3)) {
-                                    showingAlarmSetter = false
-                                }
-                            }
-                        }
-                }
+                // Current time and alarm display
+                TimeDisplayView(
+                    currentTime: currentTime,
+                    alarmTime: alarmTime,
+                    isAlarmSet: isAlarmSet,
+                    timeUntilAlarm: timeUntilAlarm,
+                    onTapGesture: handleTapToDismissAlarmSetter
+                )
                 
                 Spacer()
                     .onTapGesture {
-                        if showingAlarmSetter {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                showingAlarmSetter = false
-                            }
-                        }
+                        handleTapToDismissAlarmSetter()
                     }
                 
                 // Main alarm interface at bottom
                 VStack {
                     // Only show DatePicker when setting alarm
                     if showingAlarmSetter {
-                            VStack(alignment: .center, spacing: 12) {
-                                Text("Set Alarm Time")
-                                    .font(.headline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.white.opacity(0.9))
-                                DatePicker("", selection: $alarmTime, displayedComponents: .hourAndMinute)
-                                    .datePickerStyle(.wheel)
-                                
-                                // Silent alarm checkbox
-                                HStack {
-                                    Button(action: {
-                                        isSilentAlarm.toggle()
-                                    }) {
-                                        HStack(spacing: 8) {
-                                            Image(systemName: isSilentAlarm ? "checkmark.square" : "square")
-                                                .foregroundColor(.white.opacity(0.8))
-                                                .font(.title3)
-                                            Text("Silent alarm (no sound)")
-                                                .font(.caption)
-                                                .foregroundColor(.white.opacity(0.7))
-                                        }
-                                    }
-                                    Spacer()
-                                }
-                                .padding(.leading, 4)
-                            }
-                            .padding()
-                            .background(.white.opacity(0.1))
-                            .cornerRadius(15)
-                            .padding(.horizontal)
-                            .transition(.scale.combined(with: .opacity))
+                        AlarmSetterView(
+                            alarmTime: $alarmTime,
+                            isSilentAlarm: $isSilentAlarm,
+                            showingAlarmSetter: $showingAlarmSetter,
+                            onConfirm: setAlarm
+                        )
+                        .transition(.scale.combined(with: .opacity))
                     }
                     
                     // Show different UI based on alarm state
-                    if isAlarmSet {
-                        // Cancel Alarm slider
-                        VStack {
-                            Text("Slide to Cancel Alarm")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.6))
-                                .padding(.bottom, 5)
-                            
-                            SliderToCancelView(onCancel: cancelAlarm)
-                        }
-                        .padding(.horizontal)
-                    } else {
-                        // Regular alarm button
-                        Button(action: handleAlarmButton) {
-                            Text(buttonText)
-                                .font(.title2)
-                                .fontWeight(.light)
-                                .foregroundColor(.white.opacity(0.9))
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(buttonColor)
-                                .cornerRadius(10)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, UIScreen.main.bounds.width * 0.1) // Creates 80% width
-                    }
+                    AlarmControlsView(
+                        isAlarmSet: isAlarmSet,
+                        showingAlarmSetter: showingAlarmSetter,
+                        buttonText: buttonText,
+                        buttonColor: buttonColor,
+                        onAlarmButton: handleAlarmButton,
+                        onCancel: cancelAlarm
+                    )
                 }
                 .padding(.horizontal)
                 .padding(.bottom, 30)
             }
             
-            // Visual brightness overlay for simulator
-            if currentBrightness < 1.0 && !showBlackOverlay {
-                Color.black
-                    .opacity(1.0 - Double(currentBrightness))
-                    .ignoresSafeArea(.all)
-                    .allowsHitTesting(false)
-            }
-            
-            // Black overlay for inactivity
-            if showBlackOverlay {
-                    Color.black
-                        .ignoresSafeArea(.all)
-                        .onAppear {
-                            // Set brightness to minimum when overlay appears
-                            setBrightnessSafely(0.01)
-                            currentBrightness = 0.01
-                        }
-                        .onTapGesture {
-                            userInteracted()
-                        }
-            }
+            // Brightness overlays
+            BrightnessOverlayView(
+                currentBrightness: currentBrightness,
+                showBlackOverlay: showBlackOverlay,
+                onTap: userInteracted,
+                setBrightness: { brightness in
+                    setBrightnessSafely(brightness)
+                    currentBrightness = brightness
+                }
+            )
         }
         .onAppear {
             setupApp()
@@ -300,14 +126,18 @@ struct ContentView: View {
                     userInteracted()
                 }
         )
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 0)
-                .onChanged { _ in
-                    userInteracted()
-                }
-        )
     }
     
+    // MARK: - Helper Functions
+    
+    private func handleTapToDismissAlarmSetter() {
+        if showingAlarmSetter {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showingAlarmSetter = false
+            }
+        }
+    }
+
     // MARK: - App Lifecycle Management
     // Note: Using .onDisappear instead of deinit since SwiftUI structs don't support deinitializers
     
@@ -702,20 +532,21 @@ struct ContentView: View {
     private func userInteracted() {
         lastInteraction = Date()
         
-        // Check if we need to restore brightness
-        let shouldRestoreBrightness = showBlackOverlay || currentBrightness < 1.0
-        
+        // Always remove the black overlay when user interacts
         if showBlackOverlay {
             withAnimation(.easeInOut(duration: 0.3)) {
                 showBlackOverlay = false
             }
-        }
-        
-        // If screen is dark or brightness is reduced, restore to full brightness
-        if shouldRestoreBrightness {
-            setBrightnessSafely(1.0)
+            
+            // Only restore visual brightness overlay, not system brightness
+            // System brightness should only be changed during sunrise phase
             currentBrightness = 1.0
         }
+        
+        // Don't change system brightness here - it should only be changed:
+        // 1. During sunrise phase (in updateBrightnessForSunrise)
+        // 2. When app starts/ends (in setupApp/cleanupApp)
+        // 3. When alarm is canceled (in cancelAlarm)
     }
 
     private func startInactivityTimer() {
