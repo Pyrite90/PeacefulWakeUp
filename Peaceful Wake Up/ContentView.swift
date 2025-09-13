@@ -331,13 +331,17 @@ struct ContentView: View {
             try audioSession.setCategory(.playback, mode: .default, options: [])
             try audioSession.setActive(true)
             
-            // Set audio player volume to lowest audible level
-            setVolumeSecurely(0.1)
+            // Set system volume to 10% of maximum immediately
+            setSystemVolumeDirectly(to: 0.1)
+            
+            // Set audio player volume to maximum (system volume controls the actual output)
+            player.volume = 1.0
             
             // Start playing with validation
             let playResult = player.play()
             if playResult {
                 startVolumeTimer()
+                print("Alarm sound started - system volume set to 10%")
             } else {
                 print("Failed to start audio playback")
             }
@@ -350,7 +354,8 @@ struct ContentView: View {
                 print("Cannot start playing - system restriction")
             }
             
-            // Attempt fallback playback
+            // Attempt fallback playback with system volume control
+            setSystemVolumeDirectly(to: 0.1)
             let playResult = player.play()
             if playResult {
                 startVolumeTimer()
@@ -358,6 +363,27 @@ struct ContentView: View {
         } catch {
             print("Unexpected audio playback error: \(error.localizedDescription)")
         }
+    }
+    
+    // MARK: - System Volume Control
+    private func setSystemVolumeDirectly(to volume: Float) {
+        let safeVolume = min(max(volume, 0.0), 1.0)
+        
+        // Use MPVolumeView to control system volume
+        let volumeView = MPVolumeView(frame: .zero)
+        volumeView.showsVolumeSlider = false
+        
+        // Find the volume slider
+        for subview in volumeView.subviews {
+            if let slider = subview as? UISlider {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    slider.value = safeVolume
+                }
+                break
+            }
+        }
+        
+        print("System volume set to: \(safeVolume * 100)%")
     }
     
     private func setVolumeSecurely(_ volume: Float) {
@@ -472,30 +498,27 @@ struct ContentView: View {
             return
         }
         
+        var finalAlarmTime = exactTime
+        
+        // If the selected time is earlier than now, automatically set it for tomorrow
+        if exactTime <= Date() {
+            guard let tomorrowTime = Calendar.current.date(byAdding: .day, value: 1, to: exactTime) else {
+                print("Failed to calculate tomorrow's alarm time")
+                return
+            }
+            finalAlarmTime = tomorrowTime
+            print("Alarm time was in the past, automatically set for tomorrow: \(tomorrowTime)")
+        }
+        
         // Validate alarm time is reasonable (not too far in future)
         let maxFutureTime = Date().addingTimeInterval(7 * 24 * 3600) // 7 days
-        guard exactTime <= maxFutureTime else {
+        guard finalAlarmTime <= maxFutureTime else {
             print("Alarm time too far in future - maximum 7 days allowed")
             return
         }
         
-        // Validate alarm time is not in the past by more than a few minutes
-        let minimumValidTime = Date().addingTimeInterval(-300) // Allow 5 minutes in past for clock sync issues
-        guard exactTime > minimumValidTime else {
-            print("Alarm time too far in the past")
-            return
-        }
-        
-        alarmTime = exactTime
-        
-        // Adjust to tomorrow if needed
-        if alarmTime <= Date() {
-            guard let tomorrowTime = Calendar.current.date(byAdding: .day, value: 1, to: alarmTime) else {
-                print("Failed to calculate tomorrow's alarm time")
-                return
-            }
-            alarmTime = tomorrowTime
-        }
+        // Set the final alarm time
+        alarmTime = finalAlarmTime
         
         withAnimation(.easeInOut(duration: 0.3)) {
             showingAlarmSetter = false
@@ -676,9 +699,8 @@ struct ContentView: View {
     }
     
     private func setSystemVolume(to volume: Float) {
-        print("Setting volume to: \(volume)")
-        // Control the audio player volume directly with bounds checking
-        setVolumeSecurely(volume)
+        print("Setting system volume to: \(volume)")
+        setSystemVolumeDirectly(to: volume)
     }
 }
 

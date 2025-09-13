@@ -16,31 +16,35 @@ struct AlarmControlsView: View {
     let onCancel: () -> Void
     
     var body: some View {
-        if isAlarmSet {
-            // Cancel Alarm slider
-            VStack {
-                Text("Slide to Cancel Alarm")
-                    .font(.caption)
-                    .foregroundColor(.white.opacity(0.6))
-                    .padding(.bottom, 5)
-                
-                SliderToCancelView(onCancel: onCancel)
+        // Only show controls when NOT showing the alarm setter
+        // The AlarmSetterView has its own Confirm button
+        if !showingAlarmSetter {
+            if isAlarmSet {
+                // Cancel Alarm slider
+                VStack {
+                    Text("Slide to Cancel Alarm")
+                        .font(.caption)
+                        .foregroundColor(.white.opacity(0.6))
+                        .padding(.bottom, 5)
+                    
+                    SliderToCancelView(onCancel: onCancel)
+                }
+                .padding(.horizontal)
+            } else {
+                // Regular alarm button (Set Alarm)
+                Button(action: onAlarmButton) {
+                    Text(buttonText)
+                        .font(.title2)
+                        .fontWeight(.light)
+                        .foregroundColor(.white.opacity(0.9))
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(buttonColor)
+                        .cornerRadius(10)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, UIScreen.main.bounds.width * 0.1) // Creates 80% width
             }
-            .padding(.horizontal)
-        } else {
-            // Regular alarm button
-            Button(action: onAlarmButton) {
-                Text(buttonText)
-                    .font(.title2)
-                    .fontWeight(.light)
-                    .foregroundColor(.white.opacity(0.9))
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(buttonColor)
-                    .cornerRadius(10)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, UIScreen.main.bounds.width * 0.1) // Creates 80% width
         }
     }
 }
