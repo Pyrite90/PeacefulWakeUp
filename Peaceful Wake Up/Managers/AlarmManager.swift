@@ -10,7 +10,7 @@ import SwiftUI
 import AVFoundation
 
 @Observable
-class AlarmManager {
+class AlarmManager: AlarmManaging {
     // MARK: - Properties
     var alarmTime: Date = Date().addingTimeInterval(3600)
     var isAlarmSet: Bool = false

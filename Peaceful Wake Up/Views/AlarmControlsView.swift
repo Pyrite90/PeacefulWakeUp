@@ -28,6 +28,7 @@ struct AlarmControlsView: View {
                         .padding(.bottom, 5)
                     
                     SliderToCancelView(onCancel: onCancel)
+                        .testingIdentifier(.cancelAlarmButton)
                 }
                 .padding(.horizontal)
             } else {
@@ -38,10 +39,12 @@ struct AlarmControlsView: View {
                         .fontWeight(.light)
                         .foregroundColor(.white.opacity(0.9))
                         .frame(maxWidth: .infinity)
+                        .testingLabel("Set Alarm Button")
                         .padding()
                         .background(buttonColor)
                         .cornerRadius(10)
                 }
+                .testingIdentifier(.setAlarmButton)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, UIScreen.main.bounds.width * 0.1) // Creates 80% width
             }

@@ -23,6 +23,8 @@ struct TimeDisplayView: View {
                 .second(.twoDigits))
                 .font(.system(size: 48, weight: .light, design: .rounded))
                 .foregroundColor(.white.opacity(0.9))
+                .testingIdentifier(.alarmTimeDisplay)
+                .testingValue(currentTime.formatted(.dateTime.hour().minute().second()))
                 .onTapGesture {
                     onTapGesture()
                 }
@@ -44,6 +46,8 @@ struct TimeDisplayView: View {
                     .fontWeight(.light)
                     .foregroundColor(.white.opacity(0.6))
                     .padding(.top, 5)
+                    .testingIdentifier(.timeUntilAlarmLabel)
+                    .testingValue(timeUntilAlarm)
                     .onTapGesture {
                         onTapGesture()
                     }

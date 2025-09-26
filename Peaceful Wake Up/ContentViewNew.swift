@@ -13,27 +13,13 @@ import AVFoundation
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     
-    // MARK: - Dependency Injection
-    private let dependencyContainer: DependencyContainer
-    
     // MARK: - Managers
-    @StateObject private var alarmManager: AlarmManager
-    @StateObject private var audioManager: AudioManager
-    @StateObject private var backgroundTaskManager: BackgroundTaskManager
-    @StateObject private var notificationManager: NotificationManager
-    
-    // MARK: - Initialization
-    init(dependencyContainer: DependencyContainer = .shared) {
-        self.dependencyContainer = dependencyContainer
-        self._alarmManager = StateObject(wrappedValue: dependencyContainer.alarmManager)
-        self._audioManager = StateObject(wrappedValue: dependencyContainer.audioManager)
-        self._backgroundTaskManager = StateObject(wrappedValue: dependencyContainer.backgroundTaskManager)
-        self._notificationManager = StateObject(wrappedValue: dependencyContainer.notificationManager)
-    }
-    
-    // MARK: - Additional Managers
+    @StateObject private var alarmManager = AlarmManager()
+    @StateObject private var audioManager = AudioManager()
+    @StateObject private var backgroundTaskManager = BackgroundTaskManager()
+    @StateObject private var notificationManager = NotificationManager()
     @StateObject private var appStateManager = AppStateManager()
-    @StateObject private var performanceMetrics = PerformanceMetrics.shared
+    @StateObject private var performanceMetrics = PerformanceMetrics()
     
     // Use existing BrightnessManager as @Observable
     @State private var brightnessManager = BrightnessManager()
@@ -147,8 +133,6 @@ struct ContentView: View {
         .onAppear {
             setupApp()
         }
-        .overlay(PerformanceTestingOverlay())
-        .testingIdentifier(.mainContainer)
         .onDisappear {
             cleanupApp()
         }
@@ -205,13 +189,7 @@ struct ContentView: View {
     
     // MARK: - App Lifecycle
     private func setupApp() {
-        AppLogger.info("App setup started", category: .system)
-        let measurement = PerformanceMeasurement(operation: "App Setup", category: .system)
-        
-        // Check for testing error simulation
-        if let simulatedError = TestingErrorHandler.simulateErrorIfNeeded() {
-            AppErrorHandler.handle(simulatedError, context: "App Setup")
-        }
+        let setupStartTime = CFAbsoluteTimeGetCurrent()
         
         // Setup managers
         brightnessManager.setupBrightness()
@@ -225,14 +203,11 @@ struct ContentView: View {
             onAudioInterruption: audioManager.handleAudioSessionInterruption
         )
         
-        let setupTime = measurement.end()
+        let setupTime = CFAbsoluteTimeGetCurrent() - setupStartTime
         performanceMetrics.recordAudioSetupTime(setupTime)
-        AppLogger.info("App setup completed", category: .system)
     }
     
     private func cleanupApp() {
-        AppLogger.info("App cleanup started", category: .system)
-        
         performanceMetrics.logMetrics()
         notificationManager.removeNotificationObservers()
         appStateManager.setIdleTimerEnabled(true)
@@ -240,8 +215,6 @@ struct ContentView: View {
         audioManager.stopAlarmSound()
         audioManager.cleanupAudioResources()
         backgroundTaskManager.endBackgroundTask()
-        
-        AppLogger.info("App cleanup completed", category: .system)
     }
     
     private func handleMemoryWarning() {

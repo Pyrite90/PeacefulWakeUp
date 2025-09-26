@@ -15,6 +15,9 @@ struct AppErrorHandler {
         case brightnessControlUnavailable
         case invalidAlarmTime
         case volumeControlFailed
+        case backgroundTaskFailed
+        case memoryWarning
+        case audioInterruption(reason: String)
         
         var errorDescription: String? {
             switch self {
@@ -26,27 +29,59 @@ struct AppErrorHandler {
                 return "Invalid alarm time selected"
             case .volumeControlFailed:
                 return "Volume control failed"
+            case .backgroundTaskFailed:
+                return "Background task management failed"
+            case .memoryWarning:
+                return "Low memory warning - some features may be limited"
+            case .audioInterruption(let reason):
+                return "Audio interrupted: \(reason)"
+            }
+        }
+        
+        var recoverySuggestion: String? {
+            switch self {
+            case .audioPlayerFailed:
+                return "Check device volume and audio permissions"
+            case .brightnessControlUnavailable:
+                return "Brightness features will be disabled"
+            case .invalidAlarmTime:
+                return "Please select a valid time in the future"
+            case .volumeControlFailed:
+                return "Volume control may not work properly"
+            case .backgroundTaskFailed:
+                return "Alarm may not work reliably in background"
+            case .memoryWarning:
+                return "Close other apps to improve performance"
+            case .audioInterruption:
+                return "Audio will resume automatically when possible"
             }
         }
     }
     
-    static func handleError(_ error: Error, context: String) {
+    // MARK: - Error Recovery Strategies
+    static func handleError(_ error: Error, context: String, recovery: (() -> Void)? = nil) {
         print("🚨 Error in \(context): \(error.localizedDescription)")
         
         // Log to system for debugging
         #if DEBUG
         print("Debug: \(error)")
+        if let alarmError = error as? AlarmError {
+            print("Recovery suggestion: \(alarmError.recoverySuggestion ?? "None")")
+        }
         #endif
+        
+        // Execute recovery strategy if provided
+        recovery?()
         
         // Could integrate with crash reporting here
         // Analytics.recordError(error, context: context)
     }
     
-    static func safeExecute<T>(_ operation: () throws -> T, fallback: T, context: String) -> T {
+    static func safeExecute<T>(_ operation: () throws -> T, fallback: T, context: String, recovery: (() -> Void)? = nil) -> T {
         do {
             return try operation()
         } catch {
-            handleError(error, context: context)
+            handleError(error, context: context, recovery: recovery)
             return fallback
         }
     }

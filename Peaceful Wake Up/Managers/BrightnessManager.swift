@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 @Observable
-class BrightnessManager {
+class BrightnessManager: BrightnessManaging {
     // MARK: - Properties
     var currentBrightness: CGFloat = 1.0
     var showBlackOverlay: Bool = false
