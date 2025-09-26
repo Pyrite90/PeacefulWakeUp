@@ -10,6 +10,7 @@ import SwiftUI
 struct BrightnessOverlayView: View {
     let currentBrightness: CGFloat
     let showBlackOverlay: Bool
+    let currentTime: Date
     let onTap: () -> Void
     let setBrightness: (CGFloat) -> Void
     
@@ -23,26 +24,44 @@ struct BrightnessOverlayView: View {
                     .allowsHitTesting(false)
             }
             
-            // Black overlay for inactivity
+            // Black overlay for inactivity with time display
             if showBlackOverlay {
-                Color.black
-                    .ignoresSafeArea(.all)
-                    .onAppear {
-                        // Set brightness to minimum when overlay appears
-                        setBrightness(0.01)
-                    }
-                    .onTapGesture {
-                        onTap()
-                    }
+                ZStack {
+                    Color.black
+                        .ignoresSafeArea(.all)
+                    
+                    // Large translucent white time display
+                    Text(timeString)
+                        .font(.system(size: 72, weight: .thin, design: .default))
+                        .foregroundColor(.white.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                }
+                .onAppear {
+                    // Set brightness to minimum when overlay appears
+                    setBrightness(0.01)
+                }
+                .onTapGesture {
+                    onTap()
+                }
             }
         }
+    }
+    
+    // MARK: - Computed Properties
+    
+    private var timeString: String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter.string(from: currentTime)
     }
 }
 
 #Preview {
     BrightnessOverlayView(
         currentBrightness: 0.5,
-        showBlackOverlay: false,
+        showBlackOverlay: true,
+        currentTime: Date(),
         onTap: {},
         setBrightness: { _ in }
     )

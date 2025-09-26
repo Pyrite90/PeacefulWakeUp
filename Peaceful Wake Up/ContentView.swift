@@ -15,18 +15,13 @@ struct ContentView: View {
     @State private var alarmTime: Date = Date().addingTimeInterval(3600)
     @State private var lastInteraction: Date = Date()
     @State private var showBlackOverlay: Bool = false
-    @State private var inactivityTimer: Timer?
-    @State private var sunriseTimer: Timer?
-    @State private var timeTimer: Timer?
     @State private var originalBrightness: CGFloat = UIScreen.main.brightness
     @State private var isAlarmSet: Bool = false
     @State private var currentBrightness: CGFloat = 1.0
-    @State private var currentTime: Date = Date()
     @State private var showingAlarmSetter: Bool = false
     @State private var audioPlayer: AVAudioPlayer?
     @State private var originalVolume: Float = 0.0
     @State private var brightnessBeforeInactivity: CGFloat = 1.0
-    @State private var volumeTimer: Timer?
     @State private var alarmStartTime: Date?
     @State private var isSilentAlarm: Bool = false
     @State private var systemBrightnessAtSunriseStart: CGFloat = 1.0
@@ -34,78 +29,123 @@ struct ContentView: View {
     @State private var hasEnteredSunrisePhase: Bool = false
 
     var body: some View {
-        ZStack {
-            // Sunrise gradient background - fills entire screen
-            SunriseBackgroundView()
+        // Compatible TimelineView for iOS 18-26
+        TimelineView(TimelineViewCompat.createPeriodicSchedule(interval: 1.0)) { timeline in
+            let currentTime = timeline.date
             
-            // Main content
-            VStack(spacing: 0) {
-                // Title at the very top
-                Text("Peaceful Wake Up")
-                    .font(.largeTitle)
-                    .foregroundColor(.white.opacity(1.0))
+            ZStack {
+                // Sunrise gradient background - fills entire screen
+                SunriseBackgroundView()
+                
+                // Main content
+                VStack(spacing: 0) {
+                    // Title at the very top with iOS version info in debug
+                    VStack {
+                        Text("Peaceful Wake Up")
+                            .font(.largeTitle)
+                            .foregroundColor(.white.opacity(1.0))
+                        
+                        #if DEBUG
+                        Text("iOS \(iOSCompatibility.versionString)")
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.6))
+                        #endif
+                    }
                     .padding(.top, 50)
                     .padding(.bottom, 20)
                     .onTapGesture {
                         handleTapToDismissAlarmSetter()
                     }
-                
-                Spacer()
-                    .onTapGesture {
-                        handleTapToDismissAlarmSetter()
+                    
+                    Spacer()
+                        .onTapGesture {
+                            handleTapToDismissAlarmSetter()
+                        }
+                    
+                    // Current time and alarm display - now uses TimelineView's currentTime
+                    TimeDisplayView(
+                        currentTime: currentTime,
+                        alarmTime: alarmTime,
+                        isAlarmSet: isAlarmSet,
+                        timeUntilAlarm: timeUntilAlarm(currentTime: currentTime),
+                        onTapGesture: handleTapToDismissAlarmSetter
+                    )
+                    
+                    Spacer()
+                        .onTapGesture {
+                            handleTapToDismissAlarmSetter()
+                        }
+                    
+                    // Main alarm interface at bottom
+                    VStack {
+                        // Only show DatePicker when setting alarm
+                        if showingAlarmSetter {
+                            AlarmSetterView(
+                                alarmTime: $alarmTime,
+                                isSilentAlarm: $isSilentAlarm,
+                                showingAlarmSetter: $showingAlarmSetter,
+                                onConfirm: setAlarm
+                            )
+                            .transition(.scale.combined(with: .opacity))
+                        }
+                        
+                        // Show different UI based on alarm state
+                        AlarmControlsView(
+                            isAlarmSet: isAlarmSet,
+                            showingAlarmSetter: showingAlarmSetter,
+                            buttonText: buttonText,
+                            buttonColor: buttonColor,
+                            onAlarmButton: handleAlarmButton,
+                            onCancel: cancelAlarm
+                        )
                     }
+                    .padding(.horizontal)
+                    .padding(.bottom, 30)
+                }
                 
-                // Current time and alarm display
-                TimeDisplayView(
+                // Brightness overlays
+                BrightnessOverlayView(
+                    currentBrightness: currentBrightness,
+                    showBlackOverlay: showBlackOverlay,
                     currentTime: currentTime,
-                    alarmTime: alarmTime,
-                    isAlarmSet: isAlarmSet,
-                    timeUntilAlarm: timeUntilAlarm,
-                    onTapGesture: handleTapToDismissAlarmSetter
+                    onTap: userInteracted,
+                    setBrightness: { brightness in
+                        setBrightnessSafely(brightness)
+                        currentBrightness = brightness
+                    }
                 )
                 
-                Spacer()
-                    .onTapGesture {
-                        handleTapToDismissAlarmSetter()
-                    }
+                // Inactivity TimelineView - replaces inactivityTimer
+                InactivityTimelineView(
+                    lastInteraction: lastInteraction,
+                    isAlarmSet: isAlarmSet,
+                    alarmTime: alarmTime,
+                    showBlackOverlay: $showBlackOverlay,
+                    currentBrightness: $currentBrightness,
+                    brightnessBeforeInactivity: $brightnessBeforeInactivity,
+                    setBrightness: setBrightnessSafely
+                )
                 
-                // Main alarm interface at bottom
-                VStack {
-                    // Only show DatePicker when setting alarm
-                    if showingAlarmSetter {
-                        AlarmSetterView(
-                            alarmTime: $alarmTime,
-                            isSilentAlarm: $isSilentAlarm,
-                            showingAlarmSetter: $showingAlarmSetter,
-                            onConfirm: setAlarm
-                        )
-                        .transition(.scale.combined(with: .opacity))
-                    }
-                    
-                    // Show different UI based on alarm state
-                    AlarmControlsView(
-                        isAlarmSet: isAlarmSet,
-                        showingAlarmSetter: showingAlarmSetter,
-                        buttonText: buttonText,
-                        buttonColor: buttonColor,
-                        onAlarmButton: handleAlarmButton,
-                        onCancel: cancelAlarm
+                // Sunrise TimelineView - replaces sunriseTimer
+                if isAlarmSet {
+                    SunriseTimelineView(
+                        alarmTime: alarmTime,
+                        hasEnteredSunrisePhase: $hasEnteredSunrisePhase,
+                        systemBrightnessAtSunriseStart: $systemBrightnessAtSunriseStart,
+                        currentBrightness: $currentBrightness,
+                        setBrightness: setBrightnessSafely,
+                        onAlarmCompleted: alarmCompleted
                     )
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 30)
-            }
-            
-            // Brightness overlays
-            BrightnessOverlayView(
-                currentBrightness: currentBrightness,
-                showBlackOverlay: showBlackOverlay,
-                onTap: userInteracted,
-                setBrightness: { brightness in
-                    setBrightnessSafely(brightness)
-                    currentBrightness = brightness
+                
+                // Volume TimelineView - replaces volumeTimer
+                if let alarmStartTime = alarmStartTime {
+                    VolumeTimelineView(
+                        alarmStartTime: alarmStartTime,
+                        setSystemVolume: setSystemVolume
+                    )
                 }
-            )
+            }
         }
         .onAppear {
             setupApp()
@@ -132,7 +172,7 @@ struct ContentView: View {
     
     private func handleTapToDismissAlarmSetter() {
         if showingAlarmSetter {
-            withAnimation(.easeInOut(duration: 0.3)) {
+            withAnimation(AnimationCompat.easeInOut) {
                 showingAlarmSetter = false
             }
         }
@@ -162,7 +202,7 @@ struct ContentView: View {
         }
     }
     
-    private var timeUntilAlarm: String {
+    private func timeUntilAlarm(currentTime: Date) -> String {
         guard isAlarmSet else { return "" }
         
         let timeInterval = alarmTime.timeIntervalSince(currentTime)
@@ -198,8 +238,10 @@ struct ContentView: View {
         }
         
         setupAudioSession()
-        startInactivityTimer()
-        startTimeTimer()
+        // Timer functions removed - now handled by TimelineView components
+        
+        // Performance: Preload audio to avoid delays during alarm
+        preloadAudioResources()
     }
 
     private func cleanupApp() {
@@ -211,8 +253,34 @@ struct ContentView: View {
         }
         
         stopAlarmSound()
-        invalidateAllTimers()
+        
+        // Memory cleanup: Explicitly release audio player
+        cleanupAudioResources()
+        
         endBackgroundTask()
+        // Timer cleanup removed - TimelineView components handle their own lifecycle
+    }
+    
+    // MARK: - Audio Resource Management
+    private func preloadAudioResources() {
+        // Preload audio in background to avoid UI blocking
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            self?.setupAudioPlayerSecurely()
+        }
+    }
+    
+    private func cleanupAudioResources() {
+        audioPlayer?.stop()
+        audioPlayer?.prepareToPlay() // Reset to prepared state
+        audioPlayer = nil // Explicit cleanup
+        
+        // Reset audio session
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Failed to deactivate audio session: \(error.localizedDescription)")
+        }
     }
     
     // MARK: - Secure Brightness Control
@@ -238,7 +306,8 @@ struct ContentView: View {
                 return
             }
             
-            try audioSession.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            // Use compatibility layer for cross-version audio session setup
+            try audioSession.setCompatibleCategory()
             try audioSession.setActive(true)
             
             // Store original volume safely
@@ -253,7 +322,6 @@ struct ContentView: View {
             if error.code == AVAudioSession.ErrorCode.cannotStartPlaying.rawValue {
                 print("Cannot start playing audio - permission denied or hardware issue")
             }
-            // Note: categoryNotAvailable was removed as it's not a valid error code
         } catch {
             print("Unexpected audio session error: \(error.localizedDescription)")
         }
@@ -340,7 +408,7 @@ struct ContentView: View {
             // Start playing with validation
             let playResult = player.play()
             if playResult {
-                startVolumeTimer()
+                // Volume is now handled by VolumeTimelineView - no manual timer needed
                 print("Alarm sound started - system volume set to 10%")
             } else {
                 print("Failed to start audio playback")
@@ -358,7 +426,8 @@ struct ContentView: View {
             setSystemVolumeDirectly(to: 0.1)
             let playResult = player.play()
             if playResult {
-                startVolumeTimer()
+                // Volume is now handled by VolumeTimelineView
+                print("Fallback alarm sound started")
             }
         } catch {
             print("Unexpected audio playback error: \(error.localizedDescription)")
@@ -367,59 +436,15 @@ struct ContentView: View {
     
     // MARK: - System Volume Control
     private func setSystemVolumeDirectly(to volume: Float) {
-        let safeVolume = min(max(volume, 0.0), 1.0)
-        
-        // Use MPVolumeView to control system volume
-        let volumeView = MPVolumeView(frame: .zero)
-        volumeView.showsVolumeSlider = false
-        
-        // Find the volume slider
-        for subview in volumeView.subviews {
-            if let slider = subview as? UISlider {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    slider.value = safeVolume
-                }
-                break
-            }
-        }
-        
-        print("System volume set to: \(safeVolume * 100)%")
+        // Use compatibility layer for cross-version volume control
+        VolumeControlCompat.setSystemVolume(volume)
     }
     
-    private func setVolumeSecurely(_ volume: Float) {
-        let safeVolume = min(max(volume, 0.0), 1.0)
-        audioPlayer?.volume = safeVolume
+    private func setSystemVolume(to volume: Float) {
+        print("Setting system volume to: \(volume)")
+        VolumeControlCompat.setSystemVolume(volume)
     }
-    
-    private func stopAlarmSound() {
-        audioPlayer?.stop()
-        
-        // Restore original audio session settings safely
-        do {
-            let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playback, mode: .default)
-        } catch {
-            print("Failed to restore audio session: \(error.localizedDescription)")
-        }
-    }
-    
-    // MARK: - Enhanced Timer Management
-    private func invalidateAllTimers() {
-        let timers = [inactivityTimer, sunriseTimer, timeTimer, volumeTimer]
-        timers.forEach { timer in
-            timer?.invalidate()
-        }
-        inactivityTimer = nil
-        sunriseTimer = nil
-        timeTimer = nil
-        volumeTimer = nil
-    }
-    
-    // Keep original function for backward compatibility
-    private func invalidateTimers() {
-        invalidateAllTimers()
-    }
-    
+
     // MARK: - Background Task Management
     private func handleAppGoingToBackground() {
         if isAlarmSet {
@@ -445,16 +470,6 @@ struct ContentView: View {
             backgroundTaskID = .invalid
         }
     }
-    
-    // MARK: - Timer Functions
-    private func startTimeTimer() {
-        timeTimer?.invalidate()
-        timeTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            DispatchQueue.main.async {
-                self.currentTime = Date()
-            }
-        }
-    }
 
     private func handleAlarmButton() {
         if isAlarmSet {
@@ -470,14 +485,12 @@ struct ContentView: View {
             }
         }
     }
-    
+
     private func cancelAlarm() {
         isAlarmSet = false
         showingAlarmSetter = false
         hasEnteredSunrisePhase = false // Reset sunrise phase flag
-        invalidateAllTimers()
-        startInactivityTimer()
-        startTimeTimer()
+        alarmStartTime = nil // Reset alarm start time to stop VolumeTimelineView
         
         // Restore system brightness to what it was before sunrise phase started
         setBrightnessSafely(systemBrightnessAtSunriseStart)
@@ -487,8 +500,7 @@ struct ContentView: View {
         stopAlarmSound()
         endBackgroundTask()
     }
-    
-    // MARK: - Enhanced Input Validation
+
     private func setAlarm() {
         // Remove seconds and nanoseconds from the selected alarm time
         let calendar = Calendar.current
@@ -524,31 +536,58 @@ struct ContentView: View {
             showingAlarmSetter = false
             isAlarmSet = true
         }
-        startSunriseTimer()
+        // Timer management now handled by SunriseTimelineView
     }
 
-    private func toggleAlarm() {
+    // MARK: - System Volume Control
+    private func setSystemVolumeDirectly(to volume: Float) {
+        // Use compatibility layer for cross-version volume control
+        VolumeControlCompat.setSystemVolume(volume)
+    }
+    
+    private func setSystemVolume(to volume: Float) {
+        print("Setting system volume to: \(volume)")
+        VolumeControlCompat.setSystemVolume(volume)
+    }
+
+    // MARK: - Background Task Management
+    private func handleAppGoingToBackground() {
+        if isAlarmSet {
+            startBackgroundTask()
+        }
+    }
+    
+    private func handleAppReturningToForeground() {
+        endBackgroundTask()
+    }
+    
+    private func startBackgroundTask() {
+        endBackgroundTask() // End any existing background task
+        
+        backgroundTaskID = UIApplication.shared.beginBackgroundTask(withName: "AlarmTimer") {
+            self.endBackgroundTask()
+        }
+    }
+    
+    private func endBackgroundTask() {
+        if backgroundTaskID != .invalid {
+            UIApplication.shared.endBackgroundTask(backgroundTaskID)
+            backgroundTaskID = .invalid
+        }
+    }
+
+    private func handleAlarmButton() {
         if isAlarmSet {
             // Cancel alarm
-            isAlarmSet = false
-            invalidateAllTimers()
-            startInactivityTimer()
-            startTimeTimer()
-            setBrightnessSafely(originalBrightness)
-            currentBrightness = originalBrightness
+            cancelAlarm()
+        } else if showingAlarmSetter {
+            // Confirm and set alarm
+            setAlarm()
         } else {
-            // Set alarm
-            guard alarmTime > Date() else {
-                // If time is in the past, set it for tomorrow
-                guard let tomorrowTime = Calendar.current.date(byAdding: .day, value: 1, to: alarmTime) else {
-                    print("Failed to set alarm for tomorrow")
-                    return
-                }
-                alarmTime = tomorrowTime
-                return
+            // Show alarm setter
+            withAnimation(.easeInOut(duration: 0.3)) {
+                showingAlarmSetter = true
             }
-            isAlarmSet = true
-            startSunriseTimer()
         }
     }
 
@@ -567,93 +606,15 @@ struct ContentView: View {
         }
         
         // Don't change system brightness here - it should only be changed:
-        // 1. During sunrise phase (in updateBrightnessForSunrise)
+        // 1. During sunrise phase (in SunriseTimelineView)
         // 2. When app starts/ends (in setupApp/cleanupApp)
         // 3. When alarm is canceled (in cancelAlarm)
-    }
-
-    private func startInactivityTimer() {
-        inactivityTimer?.invalidate()
-        inactivityTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            let timeSinceLastInteraction = Date().timeIntervalSince(self.lastInteraction)
-            let now = Date()
-            let sunriseStart = self.alarmTime.addingTimeInterval(-600) // 10 minutes before alarm
-            
-            // If alarm is set and we're within 10 minutes of alarm time, keep overlay off
-            let shouldKeepOverlayOff = self.isAlarmSet && now >= sunriseStart
-            
-            let shouldShowOverlay = !shouldKeepOverlayOff && timeSinceLastInteraction > 30
-
-            if shouldShowOverlay != self.showBlackOverlay {
-                DispatchQueue.main.async {
-                    if shouldShowOverlay {
-                        // About to show black overlay - save current brightness and set to minimum
-                        self.brightnessBeforeInactivity = UIScreen.main.brightness
-                        self.setBrightnessSafely(0.01)
-                        self.currentBrightness = 0.01
-                    }
-                    
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        self.showBlackOverlay = shouldShowOverlay
-                    }
-                }
-            }
-        }
-    }
-
-    private func startSunriseTimer() {
-        sunriseTimer?.invalidate()
-        sunriseTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { _ in
-            self.updateBrightnessForSunrise()
-        }
-    }
-
-    private func restartSunriseTimer() {
-        if isAlarmSet {
-            startSunriseTimer()
-        }
-    }
-
-    private func updateBrightnessForSunrise() {
-        let now = Date()
-        let sunriseStart = alarmTime.addingTimeInterval(-600) // 10 minutes before alarm
-
-        DispatchQueue.main.async {
-            if now >= sunriseStart && now <= self.alarmTime {
-                // Check if this is the first time entering sunrise phase
-                if !self.hasEnteredSunrisePhase {
-                    // Mark that we've entered sunrise phase
-                    self.hasEnteredSunrisePhase = true
-                    
-                    // Capture the current system brightness before we change it
-                    self.systemBrightnessAtSunriseStart = UIScreen.main.brightness
-                    
-                    // Set system brightness to maximum immediately
-                    self.setBrightnessSafely(1.0)
-                    
-                    print("Sunrise phase started - system brightness set to maximum")
-                }
-                
-                // Calculate sunrise progress (0.0 to 1.0)
-                let progress = now.timeIntervalSince(sunriseStart) / 600.0
-                let targetBrightness = max(0.0, min(1.0, progress))
-                
-                // Update app brightness for visual overlay (this creates the gradual sunrise effect)
-                self.currentBrightness = CGFloat(targetBrightness)
-                
-            } else if now > self.alarmTime {
-                // Alarm time reached - ensure full brightness and complete sunrise
-                self.setBrightnessSafely(1.0)
-                self.currentBrightness = 1.0
-                self.alarmCompleted()
-            }
-        }
     }
     
     private func alarmCompleted() {
         // Only play alarm sound if it's not a silent alarm
         if !isSilentAlarm {
-            // Record the time when alarm sound starts
+            // Record the time when alarm sound starts - VolumeTimelineView will handle volume progression
             alarmStartTime = Date()
             
             // Play alarm sound at lowest volume and keep it looping
@@ -662,45 +623,6 @@ struct ContentView: View {
         
         // DON'T reset alarm state here - keep alarm active so audio continues
         // The user must manually cancel via the slider to stop the audio
-    }
-    
-    private func startVolumeTimer() {
-        volumeTimer?.invalidate()
-        volumeTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { _ in
-            self.increaseVolume()
-        }
-    }
-    
-    private func increaseVolume() {
-        guard let startTime = alarmStartTime else {
-            print("No alarm start time set")
-            return
-        }
-        
-        let timeElapsed = Date().timeIntervalSince(startTime)
-        print("Volume increase: \(timeElapsed) seconds elapsed")
-        
-        // Stop increasing volume after 3 minutes (180 seconds)
-        guard timeElapsed <= 180 else {
-            volumeTimer?.invalidate()
-            volumeTimer = nil
-            print("Volume timer stopped after 3 minutes")
-            return
-        }
-        
-        // Calculate target volume: from 10% to 100% over 3 minutes
-        // Every 10 seconds for 3 minutes = 18 intervals
-        // Volume increase per interval = (100% - 10%) / 18 = 5% per interval
-        let intervalsElapsed = timeElapsed / 10.0
-        let targetVolume = min(1.0, 0.1 + (intervalsElapsed * 0.05)) // 10% + 5% per interval, max 100%
-        
-        print("Setting volume to: \(targetVolume)")
-        setSystemVolume(to: Float(targetVolume))
-    }
-    
-    private func setSystemVolume(to volume: Float) {
-        print("Setting system volume to: \(volume)")
-        setSystemVolumeDirectly(to: volume)
     }
 }
 
