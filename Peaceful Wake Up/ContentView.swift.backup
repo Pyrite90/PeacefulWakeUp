@@ -149,11 +149,7 @@ struct ContentView: View {
                     SunriseTimelineView(
                         alarmTime: alarmManager.alarmTime,
                         hasEnteredSunrisePhase: $alarmManager.hasEnteredSunrisePhase,
-                        systemBrightnessAtSunriseStart: $brightnessManager.systemBrightnessAtSunriseStart,
-                        currentBrightness: $brightnessManager.currentBrightness,
-                        setBrightness: { brightness in
-                            brightnessManager.setBrightnessSafely(brightness)
-                        },
+                        brightnessManager: brightnessManager,
                         onAlarmCompleted: handleAlarmCompleted
                     )
                 }
@@ -172,20 +168,18 @@ struct ContentView: View {
                     alarmTime: alarmManager.alarmTime,
                     showBlackOverlay: $brightnessManager.showBlackOverlay,
                     currentBrightness: $brightnessManager.currentBrightness,
-                    brightnessBeforeInactivity: $brightnessManager.brightnessBeforeInactivity,
-                    setBrightness: { brightness in
-                        brightnessManager.setBrightnessSafely(brightness)
-                    }
+                    brightnessBeforeInactivity: $brightnessManager.brightnessBeforeInactivity
                 )
             }
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                TapGesture()
-                    .onEnded { _ in
-                        userInteracted()
-                    }
-            )
         }
+        .contentShape(Rectangle())
+        .simultaneousGesture(
+            TapGesture()
+                .onEnded { _ in
+                    userInteracted()
+                }
+        )
+    }
     
     // MARK: - Helper Functions
     private func handleTapToDismissAlarmSetter() {

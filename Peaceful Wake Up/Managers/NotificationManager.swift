@@ -7,6 +7,7 @@
 
 import Foundation
 import UIKit
+import AVFoundation
 
 // MARK: - Notification Management
 class NotificationManager: ObservableObject, NotificationManaging {

@@ -12,12 +12,8 @@ import SwiftData
 struct Peaceful_Wake_UpApp: App {
     // MARK: - App Initialization
     init() {
-        // Initialize app configuration and logging
-        AppConfiguration.initialize()
-        AppLogger.info("Peaceful Wake Up app starting", category: .system)
-        
-        // Setup dependency container
-        DependencyContainer.shared.initialize()
+        // App initialization completed
+        print("Peaceful Wake Up app starting")
     }
     
     var sharedModelContainer: ModelContainer = {
@@ -29,7 +25,7 @@ struct Peaceful_Wake_UpApp: App {
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            AppLogger.error("Could not create ModelContainer: \(error)", category: .system)
+            print("Could not create ModelContainer: \(error)")
             fatalError("Could not create ModelContainer: \(error)")
         }
     }()
@@ -37,9 +33,6 @@ struct Peaceful_Wake_UpApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .onAppear {
-                    AppLogger.info("Main window appeared", category: .ui)
-                }
         }
         .modelContainer(sharedModelContainer)
     }

@@ -15,8 +15,8 @@ class BrightnessManager: BrightnessManaging {
     var showBlackOverlay: Bool = false
     
     private var originalBrightness: CGFloat = UIScreen.main.brightness
-    private var systemBrightnessAtSunriseStart: CGFloat = 1.0
-    private var brightnessBeforeInactivity: CGFloat = 1.0
+    var systemBrightnessAtSunriseStart: CGFloat = 1.0
+    var brightnessBeforeInactivity: CGFloat = 1.0
     private var lastInteraction: Date = Date()
     private var inactivityTimer: Timer?
     
@@ -28,7 +28,7 @@ class BrightnessManager: BrightnessManaging {
         startInactivityTimer()
     }
     
-    func cleanupBrightness() {
+    func cleanup() {
         setBrightnessSafely(originalBrightness)
         inactivityTimer?.invalidate()
         inactivityTimer = nil
@@ -79,7 +79,7 @@ class BrightnessManager: BrightnessManaging {
     }
     
     // MARK: - Private Methods
-    private func setBrightnessSafely(_ brightness: CGFloat) {
+    func setBrightnessSafely(_ brightness: CGFloat) {
         let safeBrightness = min(max(brightness, 0.0), 1.0)
         
         guard UIScreen.main.responds(to: #selector(setter: UIScreen.brightness)) else {

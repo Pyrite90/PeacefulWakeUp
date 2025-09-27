@@ -9,7 +9,7 @@ import SwiftUI
 import Foundation
 
 // MARK: - Alarm State Management
-class AlarmManager: ObservableObject {
+class AlarmManager: ObservableObject, AlarmManaging {
     @Published var alarmTime: Date = Date().addingTimeInterval(3600)
     @Published var isAlarmSet: Bool = false
     @Published var showingAlarmSetter: Bool = false

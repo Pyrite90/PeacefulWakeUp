@@ -97,7 +97,7 @@ struct MemoryManager {
     }
     
     static func logMemoryUsage(_ identifier: String) {
-        let memoryUsage = mach_task_basic_info()
+        var memoryUsage = mach_task_basic_info()
         var count = mach_msg_type_number_t(MemoryLayout<mach_task_basic_info>.size)/4
         
         let kerr: kern_return_t = withUnsafeMutablePointer(to: &memoryUsage) {

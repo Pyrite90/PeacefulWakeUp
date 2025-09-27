@@ -9,8 +9,7 @@ import Foundation
 import SwiftUI
 
 // MARK: - App State Persistence
-@MainActor
-class AppStateManager: ObservableObject {
+class AppStateManager: ObservableObject, AppStateManaging {
     // Singleton pattern for better memory management
     static let shared = AppStateManager()
     
@@ -21,7 +20,7 @@ class AppStateManager: ObservableObject {
         static let originalBrightness = "originalBrightness"
     }
     
-    private init() {
+    init() {
         // Load persisted state on initialization
         loadPersistedState()
     }

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 // MARK: - UI Testing Support
 struct UITestingHelper {
@@ -173,20 +174,20 @@ struct PerformanceTestingOverlay: View {
 
 // MARK: - Error Simulation for Testing
 struct TestingErrorHandler {
-    static func simulateErrorIfNeeded() -> AppError? {
+    static func simulateErrorIfNeeded() -> Error? {
         guard TestingDataProvider.shouldSimulateError else { return nil }
         
         let errorType = ProcessInfo.processInfo.environment["SIMULATE_ERROR_TYPE"] ?? "audio"
         
         switch errorType {
         case "audio":
-            return AppError.audioError(.setupFailed)
+            return NSError(domain: "TestError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Simulated audio error"])
         case "brightness":
-            return AppError.brightnessError(.adjustmentFailed)
+            return NSError(domain: "TestError", code: 2, userInfo: [NSLocalizedDescriptionKey: "Simulated brightness error"])
         case "permission":
-            return AppError.permissionDenied(.notifications)
+            return NSError(domain: "TestError", code: 3, userInfo: [NSLocalizedDescriptionKey: "Simulated permission error"])
         default:
-            return AppError.unknown("Simulated error for testing")
+            return NSError(domain: "TestError", code: 0, userInfo: [NSLocalizedDescriptionKey: "Simulated error for testing"])
         }
     }
 }

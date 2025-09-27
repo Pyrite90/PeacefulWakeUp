@@ -8,6 +8,7 @@
 import Foundation
 import AVFoundation
 import UIKit
+import SwiftUI
 
 // MARK: - Audio Management Protocol
 protocol AudioManaging: AnyObject {
@@ -76,9 +77,11 @@ protocol NotificationManaging: AnyObject {
 
 // MARK: - App State Management Protocol
 protocol AppStateManaging: ObservableObject {
-    func setIdleTimerEnabled(_ enabled: Bool)
-    func saveAppState()
-    func restoreAppState()
+    func saveAlarmState(alarmTime: Date, isSilent: Bool)
+    func loadPersistedState() -> (alarmTime: Date?, isSilent: Bool)
+    func saveBrightnessState(_ brightness: CGFloat)
+    func loadBrightnessState() -> CGFloat?
+    func clearPersistedState()
 }
 
 // MARK: - Dependency Container

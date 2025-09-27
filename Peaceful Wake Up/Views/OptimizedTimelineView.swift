@@ -9,17 +9,17 @@ import SwiftUI
 
 // MARK: - Optimized Timeline Schedules
 struct OptimizedTimelineSchedules {
-    // High frequency for time display (every second)
-    static let timeUpdate = TimelineSchedule.periodic(from: Date(), by: 1.0)
+        // Pre-configured schedules for better performance
+    static let timeUpdate = PeriodicTimelineSchedule(from: Date(), by: 1.0)
     
-    // Medium frequency for inactivity checking (every 5 seconds to reduce CPU usage)
-    static let inactivityCheck = TimelineSchedule.periodic(from: Date(), by: 5.0)
+    // Optimized schedules for different update frequencies
+    static let inactivityCheck = PeriodicTimelineSchedule(from: Date(), by: 5.0)
     
-    // Low frequency for sunrise updates (every 10 seconds during sunrise phase)
-    static let sunriseUpdate = TimelineSchedule.periodic(from: Date(), by: 10.0)
+    // Less frequent updates for sunrise effect
+    static let sunriseUpdate = PeriodicTimelineSchedule(from: Date(), by: 10.0)
     
-    // Volume updates every 10 seconds (unchanged)
-    static let volumeUpdate = TimelineSchedule.periodic(from: Date(), by: 10.0)
+    // Volume updates (less frequent)
+    static let volumeUpdate = PeriodicTimelineSchedule(from: Date(), by: 10.0)
 }
 
 // MARK: - Performance Monitoring
