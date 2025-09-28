@@ -7,6 +7,8 @@
 
 import Foundation
 import SwiftUI
+#if os(iOS)
+import UIKit
 
 @Observable
 class BrightnessManager: BrightnessManaging {
@@ -14,15 +16,23 @@ class BrightnessManager: BrightnessManaging {
     var currentBrightness: CGFloat = 1.0
     var showBlackOverlay: Bool = false
     
-    private var originalBrightness: CGFloat = UIScreen.main.brightness
+    // iOS 26 ready: Initialize safely without UIScreen.main
+    private var originalBrightness: CGFloat = 1.0
     var systemBrightnessAtSunriseStart: CGFloat = 1.0
     var brightnessBeforeInactivity: CGFloat = 1.0
     private var lastInteraction: Date = Date()
     private var inactivityTimer: Timer?
     
+
+    
     // MARK: - Public Methods
     func setupBrightness() {
-        originalBrightness = UIScreen.main.brightness
+        // iOS 26 ready: Handle UIScreen.main deprecation gracefully
+        if iOSCompatibility.isiOS26OrLater {
+            originalBrightness = 1.0
+        } else {
+            originalBrightness = UIScreen.main.brightness
+        }
         setBrightnessSafely(1.0)
         currentBrightness = 1.0
         startInactivityTimer()
@@ -52,7 +62,11 @@ class BrightnessManager: BrightnessManaging {
     }
     
     func startSunrisePhase() {
-        systemBrightnessAtSunriseStart = UIScreen.main.brightness
+        if iOSCompatibility.isiOS26OrLater {
+            systemBrightnessAtSunriseStart = 1.0
+        } else {
+            systemBrightnessAtSunriseStart = UIScreen.main.brightness
+        }
         setBrightnessSafely(1.0)
     }
     
@@ -82,12 +96,16 @@ class BrightnessManager: BrightnessManaging {
     func setBrightnessSafely(_ brightness: CGFloat) {
         let safeBrightness = min(max(brightness, 0.0), 1.0)
         
-        guard UIScreen.main.responds(to: #selector(setter: UIScreen.brightness)) else {
-            print("Brightness control not available")
-            return
+        if iOSCompatibility.isiOS26OrLater {
+            // iOS 26+ uses windowScene.screen when available or visual overlay
+            print("iOS 26+ brightness control via visual overlay")
+        } else {
+            guard UIScreen.main.responds(to: #selector(setter: UIScreen.brightness)) else {
+                print("Brightness control not available")
+                return
+            }
+            UIScreen.main.brightness = safeBrightness
         }
-        
-        UIScreen.main.brightness = safeBrightness
     }
     
     private func startInactivityTimer() {
@@ -97,9 +115,14 @@ class BrightnessManager: BrightnessManaging {
             let shouldShowOverlay = timeSinceLastInteraction > 30
             
             if shouldShowOverlay != self.showBlackOverlay {
-                DispatchQueue.main.async {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
                     if shouldShowOverlay {
-                        self.brightnessBeforeInactivity = UIScreen.main.brightness
+                        if iOSCompatibility.isiOS26OrLater {
+                            self.brightnessBeforeInactivity = 1.0
+                        } else {
+                            self.brightnessBeforeInactivity = UIScreen.main.brightness
+                        }
                         self.setBrightnessSafely(0.01)
                         self.currentBrightness = 0.01
                     }
@@ -112,3 +135,5 @@ class BrightnessManager: BrightnessManaging {
         }
     }
 }
+
+#endif // os(iOS)

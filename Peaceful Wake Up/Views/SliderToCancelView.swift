@@ -16,23 +16,23 @@ struct SliderToCancelView: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 // Background track
-                RoundedRectangle(cornerRadius: 25)
+                RoundedRectangle(cornerRadius: 32.5)
                     .fill(.white.opacity(0.2))
-                    .frame(height: 50)
+                    .frame(height: 65)
                 
                 // Slider thumb
-                RoundedRectangle(cornerRadius: 22.5)
+                RoundedRectangle(cornerRadius: 29)
                     .fill(.white.opacity(0.8))
-                    .frame(width: 45, height: 45)
+                    .frame(width: 58, height: 58)
                     .offset(x: sliderOffset)
                     .gesture(
                         DragGesture()
                             .onChanged { value in
-                                let maxOffset = geometry.size.width - 45
+                                let maxOffset = geometry.size.width - 58
                                 sliderOffset = max(0, min(value.translation.width, maxOffset))
                             }
                             .onEnded { value in
-                                let maxOffset = geometry.size.width - 45
+                                let maxOffset = geometry.size.width - 58
                                 
                                 if sliderOffset > maxOffset * 0.8 {
                                     // Slider moved far enough - cancel alarm
@@ -65,7 +65,7 @@ struct SliderToCancelView: View {
                 sliderWidth = geometry.size.width
             }
         }
-        .frame(height: 50)
+        .frame(height: 65)
     }
 }
 

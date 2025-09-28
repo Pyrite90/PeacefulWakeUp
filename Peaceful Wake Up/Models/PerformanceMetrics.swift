@@ -8,7 +8,8 @@
 import Foundation
 
 // MARK: - Performance Monitoring
-class PerformanceMetrics: ObservableObject, PerformanceTracking {
+@MainActor
+class PerformanceMetrics: ObservableObject {
     static let shared = PerformanceMetrics()
     
     @Published private(set) var audioSetupTime: TimeInterval = 0

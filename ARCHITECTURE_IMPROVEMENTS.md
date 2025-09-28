@@ -166,11 +166,14 @@ class PerformanceMetrics {
 
 ## 📱 **iOS Compatibility**
 
-### Cross-Version Support (iOS 16-18+)
+### Cross-Version Support (iOS 16-26+)
 
 ```swift
 struct iOSCompatibility {
-    static let isIOS18OrLater = ProcessInfo().isOperatingSystemAtLeast(
+    static let isiOS26OrLater = ProcessInfo().isOperatingSystemAtLeast(
+        OperatingSystemVersion(majorVersion: 26, minorVersion: 0, patchVersion: 0)
+    )
+    static let isiOS18OrLater = ProcessInfo().isOperatingSystemAtLeast(
         OperatingSystemVersion(majorVersion: 18, minorVersion: 0, patchVersion: 0)
     )
 }

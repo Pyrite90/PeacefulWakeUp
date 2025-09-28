@@ -21,10 +21,11 @@ class AppStateManager: ObservableObject, AppStateManaging {
     }
     
     init() {
-        // Load persisted state on initialization
-        loadPersistedState()
+        // AppStateManager provides access to UserDefaults storage
+        // No initialization needed as it's a stateless service
     }
-    
+
+
     // MARK: - State Persistence
     func saveAlarmState(alarmTime: Date, isSilent: Bool) {
         UserDefaults.standard.set(alarmTime, forKey: Keys.lastAlarmTime)

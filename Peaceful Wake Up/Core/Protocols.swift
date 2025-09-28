@@ -7,7 +7,9 @@
 
 import Foundation
 import AVFoundation
+#if os(iOS)
 import UIKit
+#endif
 import SwiftUI
 
 // MARK: - Audio Management Protocol
@@ -85,22 +87,8 @@ protocol AppStateManaging: ObservableObject {
 }
 
 // MARK: - Dependency Container
-class DependencyContainer {
-    // Managers
-    lazy var audioManager: AudioManaging = AudioManager()
-    lazy var alarmManager: any AlarmManaging = AlarmManager()
-    lazy var performanceMetrics: any PerformanceTracking = PerformanceMetrics()
-    lazy var backgroundTaskManager: BackgroundTaskManaging = BackgroundTaskManager()
-    lazy var notificationManager: NotificationManaging = NotificationManager()
-    lazy var appStateManager: any AppStateManaging = AppStateManager()
-    
-    // For testing - allows injection of mock implementations
+struct DependencyContainer {
     static var shared = DependencyContainer()
-    
-    func reset() {
-        // Reset all managers - useful for testing
-        Self.shared = DependencyContainer()
-    }
 }
 
 // MARK: - Mock Implementations for Testing

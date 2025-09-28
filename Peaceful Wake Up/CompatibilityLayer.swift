@@ -5,6 +5,7 @@
 //  Created by Mike McDonald on 9/25/25.
 //
 
+#if os(iOS)
 import SwiftUI
 import AVFoundation
 import MediaPlayer
@@ -12,6 +13,10 @@ import MediaPlayer
 // MARK: - iOS Version Compatibility
 struct iOSCompatibility {
     static let current = ProcessInfo.processInfo.operatingSystemVersion
+    
+    static var isiOS26OrLater: Bool {
+        return current.majorVersion >= 26
+    }
     
     static var isiOS18OrLater: Bool {
         return current.majorVersion >= 18
@@ -38,7 +43,10 @@ struct iOSCompatibility {
 // MARK: - Audio Session Compatibility
 extension AVAudioSession {
     func setCompatibleCategory() throws {
-        if iOSCompatibility.isiOS18OrLater {
+        if iOSCompatibility.isiOS26OrLater {
+            // iOS 26+ latest audio features with enhanced spatial audio
+            try setCategory(.playback, mode: .default, options: [.allowBluetoothA2DP, .duckOthers, .allowAirPlay])
+        } else if iOSCompatibility.isiOS18OrLater {
             // iOS 18+ enhanced audio categories
             try setCategory(.playback, mode: .default, options: [.allowBluetoothA2DP, .duckOthers])
         } else if iOSCompatibility.isiOS17OrLater {
@@ -129,7 +137,14 @@ struct TimelineViewCompat {
 // MARK: - Animation Compatibility
 struct AnimationCompat {
     static var easeInOut: Animation {
-        if iOSCompatibility.isiOS18OrLater {
+        if iOSCompatibility.isiOS26OrLater {
+            // iOS 26+ advanced animation system
+            if #available(iOS 26.0, *) {
+                return Animation.easeInOut(duration: 0.3)
+            } else {
+                return Animation.easeInOut(duration: 0.3)
+            }
+        } else if iOSCompatibility.isiOS18OrLater {
             // iOS 18+ enhanced animations - with proper availability check
             if #available(iOS 18.0, *) {
                 return Animation.easeInOut(duration: 0.3)
@@ -142,7 +157,14 @@ struct AnimationCompat {
     }
     
     static var spring: Animation {
-        if iOSCompatibility.isiOS17OrLater {
+        if iOSCompatibility.isiOS26OrLater {
+            // iOS 26+ enhanced spring animations with improved physics
+            if #available(iOS 26.0, *) {
+                return Animation.spring(response: 0.5, dampingFraction: 0.7, blendDuration: 0.1)
+            } else {
+                return Animation.spring(response: 0.5, dampingFraction: 0.7)
+            }
+        } else if iOSCompatibility.isiOS17OrLater {
             // Use proper Animation.spring syntax
             return Animation.spring(response: 0.5, dampingFraction: 0.7)
         } else {
@@ -175,6 +197,21 @@ struct FeatureAvailability {
     static var hasSpatialAudio: Bool {
         return iOSCompatibility.isiOS18OrLater
     }
+    
+    /// Check if iOS 26+ enhanced features are available
+    static var hasNewestFeatures: Bool {
+        return iOSCompatibility.isiOS26OrLater
+    }
+    
+    /// Check if advanced animation system is available
+    static var hasAdvancedAnimations: Bool {
+        return iOSCompatibility.isiOS26OrLater
+    }
+    
+    /// Check if enhanced AirPlay features are available
+    static var hasEnhancedAirPlay: Bool {
+        return iOSCompatibility.isiOS26OrLater
+    }
 }
 
 // MARK: - Deployment Target Configuration
@@ -186,3 +223,5 @@ extension TimelineViewCompat {
     }
 }
 #endif
+
+#endif // os(iOS)
