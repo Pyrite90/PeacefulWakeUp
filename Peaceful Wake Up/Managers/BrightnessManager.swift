@@ -21,7 +21,7 @@ class BrightnessManager: BrightnessManaging {
     var systemBrightnessAtSunriseStart: CGFloat = 1.0
     var brightnessBeforeInactivity: CGFloat = 1.0
     private var lastInteraction: Date = Date()
-    private var inactivityTimer: Timer?
+    // inactivityTimer removed - handled by InactivityTimelineView
     
 
     
@@ -35,13 +35,12 @@ class BrightnessManager: BrightnessManaging {
         }
         setBrightnessSafely(1.0)
         currentBrightness = 1.0
-        startInactivityTimer()
+        // Inactivity handling is managed by InactivityTimelineView
     }
     
     func cleanup() {
         setBrightnessSafely(originalBrightness)
-        inactivityTimer?.invalidate()
-        inactivityTimer = nil
+        // Inactivity timer cleanup is managed by InactivityTimelineView
     }
     
     func userInteracted() {
@@ -108,32 +107,7 @@ class BrightnessManager: BrightnessManaging {
         }
     }
     
-    private func startInactivityTimer() {
-        inactivityTimer?.invalidate()
-        inactivityTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            let timeSinceLastInteraction = Date().timeIntervalSince(self.lastInteraction)
-            let shouldShowOverlay = timeSinceLastInteraction > 30
-            
-            if shouldShowOverlay != self.showBlackOverlay {
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    if shouldShowOverlay {
-                        if iOSCompatibility.isiOS26OrLater {
-                            self.brightnessBeforeInactivity = 1.0
-                        } else {
-                            self.brightnessBeforeInactivity = UIScreen.main.brightness
-                        }
-                        self.setBrightnessSafely(0.01)
-                        self.currentBrightness = 0.01
-                    }
-                    
-                    withAnimation(.easeInOut(duration: 0.3)) {
-                        self.showBlackOverlay = shouldShowOverlay
-                    }
-                }
-            }
-        }
-    }
+    // Inactivity timer functionality moved to InactivityTimelineView to prevent conflicts
 }
 
 #endif // os(iOS)

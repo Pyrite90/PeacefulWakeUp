@@ -40,9 +40,16 @@ class AlarmManager: ObservableObject, AlarmManaging {
     
     // Alarm logic methods
     func setAlarm() {
+        // Ensure seconds and microseconds are set to 0 for precise alarm timing
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: alarmTime)
+        if let normalizedTime = calendar.date(from: components) {
+            alarmTime = normalizedTime
+        }
+        
         isAlarmSet = true
         showingAlarmSetter = false
-        alarmStartTime = Date()
+        // alarmStartTime will be set when alarm actually starts playing
     }
     
     func cancelAlarm() {
@@ -64,9 +71,12 @@ class AlarmManager: ObservableObject, AlarmManaging {
         let minutes = Int(timeInterval.truncatingRemainder(dividingBy: 3600)) / 60
         
         if hours > 0 {
-            return "\(hours) Hours \(minutes) Minutes"
+            let hourText = hours == 1 ? "Hour" : "Hours"
+            let minuteText = minutes == 1 ? "Minute" : "Minutes"
+            return "\(hours) \(hourText), \(minutes) \(minuteText)"
         } else {
-            return "\(minutes) Minutes"
+            let minuteText = minutes == 1 ? "Minute" : "Minutes"
+            return "\(minutes) \(minuteText)"
         }
     }
 }

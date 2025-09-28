@@ -215,6 +215,8 @@ struct ContentView: View {
     }
     
     private func handleAlarmCompleted() {
+        // Set alarm start time when audio actually begins playing
+        alarmManager.alarmStartTime = Date()
         audioManager.playAlarmSound()
     }
     

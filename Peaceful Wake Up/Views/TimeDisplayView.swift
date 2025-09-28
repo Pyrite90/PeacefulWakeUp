@@ -61,7 +61,7 @@ struct TimeDisplayView: View {
         currentTime: Date(),
         alarmTime: Date().addingTimeInterval(3600),
         isAlarmSet: true,
-        timeUntilAlarm: "1 hour, 0 minutes",
+        timeUntilAlarm: "1 Hour, 0 Minutes",
         onTapGesture: {}
     )
     .background(.black)

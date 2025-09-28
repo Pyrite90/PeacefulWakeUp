@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+#if os(iOS)
+import UIKit
+#endif
 
 struct InactivityTimelineView: View {
     let lastInteraction: Date
@@ -47,7 +50,13 @@ struct InactivityTimelineView: View {
             AppErrorHandler.safeExecute({
                 if shouldShowOverlay {
                     // About to show black overlay - save current brightness and set to minimum
-                    brightnessBeforeInactivity = UIScreen.main.brightness
+                    #if os(iOS)
+                    if iOSCompatibility.isiOS26OrLater {
+                        brightnessBeforeInactivity = 1.0
+                    } else {
+                        brightnessBeforeInactivity = UIScreen.main.brightness
+                    }
+                    #endif
                     setBrightness(0.01)
                     currentBrightness = 0.01
                 }
