@@ -133,6 +133,12 @@ class AudioManager: AudioManaging, ObservableObject {
             print("Audio player not available")
             return
         }
+        
+        // Prevent multiple play attempts if already playing
+        guard !player.isPlaying else {
+            print("Alarm sound already playing")
+            return
+        }
         // Override silent mode and set system volume to lowest level
         do {
             let audioSession = AVAudioSession.sharedInstance()

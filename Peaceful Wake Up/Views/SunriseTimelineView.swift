@@ -58,10 +58,13 @@ struct SunriseTimelineView: View {
                 // Update app brightness for visual overlay (this creates the gradual sunrise effect)
                 currentBrightness = CGFloat(targetBrightness)
                 
-            } else if currentTime > alarmTime {
+            } else if currentTime > alarmTime && hasEnteredSunrisePhase {
                 // Alarm time reached - ensure full brightness and complete sunrise
                 setBrightness(1.0)
                 currentBrightness = 1.0
+                
+                // Only trigger alarm completion once by resetting the sunrise phase flag
+                hasEnteredSunrisePhase = false
                 onAlarmCompleted()
             }
         }, fallback: (), context: "SunriseUpdate")
