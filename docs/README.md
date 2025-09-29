@@ -2,9 +2,10 @@
 
 A peaceful iOS alarm app with sunrise simulation.
 
-## Privacy Policy
+## Documentation
 
-Our privacy policy is available at: [Privacy Policy](./index.html)
+- **Privacy Policy**: [Privacy Policy](./index.html)
+- **Support & Help**: [Support Page](./support.html)
 
 ## App Information
 
@@ -23,4 +24,10 @@ Our privacy policy is available at: [Privacy Policy](./index.html)
 
 ## Support
 
-For support, please use the App Store review system or iOS Settings > Privacy & Security reporting.
+For comprehensive support information, troubleshooting guides, and FAQs, visit our [Support Page](./support.html).
+
+Quick support options:
+
+- App Store review system
+- iOS Settings > Privacy & Security reporting
+- [GitHub Issues](https://github.com/Pyrite90/PeacefulWakeUp/issues)
