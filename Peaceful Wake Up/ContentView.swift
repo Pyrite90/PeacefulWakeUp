@@ -115,7 +115,7 @@ struct ContentView: View {
                                 alarmTime: $alarmManager.alarmTime,
                                 isSilentAlarm: $alarmManager.isSilentAlarm,
                                 showingAlarmSetter: $alarmManager.showingAlarmSetter,
-                                onConfirm: alarmManager.setAlarm
+                                onConfirm: handleSetAlarm
                             )
                             .transition(.scale.combined(with: .opacity))
                         }
@@ -201,6 +201,7 @@ struct ContentView: View {
             handleCancelAlarm()
         } else if alarmManager.showingAlarmSetter {
             alarmManager.setAlarm()
+            updateIdleTimerForAlarmState()
         } else {
             withAnimation(.easeInOut(duration: 0.3)) {
                 alarmManager.showingAlarmSetter = true
@@ -211,7 +212,7 @@ struct ContentView: View {
     private func handleCancelAlarm() {
         alarmManager.cancelAlarm()
         audioManager.stopAlarmSound()
-        UIApplication.shared.isIdleTimerDisabled = false
+        updateIdleTimerForAlarmState()
     }
     
     private func handleAlarmCompleted() {
@@ -225,6 +226,23 @@ struct ContentView: View {
         brightnessManager.userInteracted()
     }
     
+    // MARK: - Idle Timer Management
+    private func updateIdleTimerForAlarmState() {
+        // Only prevent phone from locking when alarm is set
+        UIApplication.shared.isIdleTimerDisabled = alarmManager.isAlarmSet
+        
+        if alarmManager.isAlarmSet {
+            print("🔒 Phone lock disabled - alarm is set")
+        } else {
+            print("🔓 Phone lock enabled - no alarm set")
+        }
+    }
+    
+    private func handleSetAlarm() {
+        alarmManager.setAlarm()
+        updateIdleTimerForAlarmState()
+    }
+    
     // MARK: - App Lifecycle
     private func setupApp() {
         AppLogger.info("App setup started", category: .system)
@@ -232,8 +250,10 @@ struct ContentView: View {
         
         // Setup managers
         brightnessManager.setupBrightness()
-        UIApplication.shared.isIdleTimerDisabled = true
         audioManager.setupAudioSession()
+        
+        // Update idle timer based on current alarm state
+        updateIdleTimerForAlarmState()
         audioManager.preloadAudioResources()
         
         // Setup notifications

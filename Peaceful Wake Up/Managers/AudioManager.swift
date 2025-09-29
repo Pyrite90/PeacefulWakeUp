@@ -17,6 +17,7 @@ class AudioManager: AudioManaging, ObservableObject {
     private var notificationObservers: [NSObjectProtocol] = []
     private var retryCount = 0
     private let maxRetries = AppConfiguration.ErrorHandling.maxRetryAttempts
+    private var lastPlayAttempt: Date?
     
     // MARK: - Audio Session Setup
     func setupAudioSession() {
@@ -129,6 +130,14 @@ class AudioManager: AudioManaging, ObservableObject {
     
     // MARK: - Audio Playback
     func playAlarmSound() {
+        // Prevent rapid successive calls (within 5 seconds)
+        let now = Date()
+        if let lastAttempt = lastPlayAttempt, now.timeIntervalSince(lastAttempt) < 5.0 {
+            print("Preventing rapid alarm sound call - last attempt was \(now.timeIntervalSince(lastAttempt)) seconds ago")
+            return
+        }
+        lastPlayAttempt = now
+        
         guard let player = audioPlayer else {
             print("Audio player not available")
             return
