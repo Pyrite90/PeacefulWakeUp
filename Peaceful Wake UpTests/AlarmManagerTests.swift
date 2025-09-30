@@ -212,7 +212,6 @@ final class AlarmManagerTests: XCTestCase {
     }
     
     func testSetAlarmForTodayWhenTimeIsInFuture() {
-        let calendar = Calendar.current
         let now = Date()
         
         // Set alarm for 2 hours from now
