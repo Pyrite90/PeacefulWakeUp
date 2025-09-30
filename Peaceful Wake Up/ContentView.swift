@@ -213,6 +213,8 @@ struct ContentView: View {
         alarmManager.cancelAlarm()
         audioManager.stopAlarmSound()
         updateIdleTimerForAlarmState()
+        // Reset inactivity timer to keep display on for full 30 seconds
+        userInteracted()
     }
     
     private func handleAlarmCompleted() {

@@ -43,8 +43,22 @@ class AlarmManager: ObservableObject, AlarmManaging {
         // Ensure seconds and microseconds are set to 0 for precise alarm timing
         let calendar = Calendar.current
         let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: alarmTime)
+        
         if let normalizedTime = calendar.date(from: components) {
-            alarmTime = normalizedTime
+            // Check if the alarm time is in the past (earlier today)
+            let now = Date()
+            if normalizedTime <= now {
+                // If alarm time is in the past, schedule it for tomorrow
+                if let tomorrowAlarmTime = calendar.date(byAdding: .day, value: 1, to: normalizedTime) {
+                    alarmTime = tomorrowAlarmTime
+                } else {
+                    // Fallback: use the normalized time as-is if date calculation fails
+                    alarmTime = normalizedTime
+                }
+            } else {
+                // Alarm time is in the future today, use it as-is
+                alarmTime = normalizedTime
+            }
         }
         
         isAlarmSet = true
