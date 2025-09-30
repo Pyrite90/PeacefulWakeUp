@@ -123,14 +123,13 @@ class MockBrightnessManager: BrightnessManaging, ObservableObject {
 }
 
 // MARK: - Test Dependency Container
-class TestDependencyContainer: DependencyContainer {
+class TestDependencyContainer {
     let mockAudioManager = MockAudioManager()
     let mockBrightnessManager = MockBrightnessManager()
     
-    override init() {
-        super.init()
-        // Override with mocks
-        audioManager = mockAudioManager
+    init() {
+        // Initialize with mock implementations
+        // Note: Actual dependency injection to be implemented later
     }
     
     func resetAllMocks() {

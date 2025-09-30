@@ -14,6 +14,7 @@ final class AlarmIntegrationTests: XCTestCase {
     var performanceMetrics: PerformanceMetrics!
     var backgroundTaskManager: BackgroundTaskManager!
     
+    @MainActor
     override func setUp() {
         super.setUp()
         alarmManager = AlarmManager()
@@ -75,6 +76,7 @@ final class AlarmIntegrationTests: XCTestCase {
     }
     
     // MARK: - Performance Integration Tests
+    @MainActor
     func testPerformanceMetricsIntegration() {
         let startTime = CFAbsoluteTimeGetCurrent()
         

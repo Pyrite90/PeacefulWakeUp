@@ -8,6 +8,7 @@
 import XCTest
 @testable import Peaceful_Wake_Up
 
+@MainActor
 final class PerformanceMetricsTests: XCTestCase {
     var performanceMetrics: PerformanceMetrics!
     
