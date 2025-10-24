@@ -18,6 +18,7 @@ class AppStateManager: ObservableObject, AppStateManaging {
         static let lastAlarmTime = "lastAlarmTime"
         static let isSilentAlarm = "isSilentAlarm"
         static let originalBrightness = "originalBrightness"
+        static let idleTimerWasDisabled = "idleTimerWasDisabled"
     }
     
     init() {
@@ -51,6 +52,27 @@ class AppStateManager: ObservableObject, AppStateManaging {
         UserDefaults.standard.removeObject(forKey: Keys.lastAlarmTime)
         UserDefaults.standard.removeObject(forKey: Keys.isSilentAlarm)
         UserDefaults.standard.removeObject(forKey: Keys.originalBrightness)
+        UserDefaults.standard.removeObject(forKey: Keys.idleTimerWasDisabled)
+    }
+    
+    // MARK: - Idle Timer State Management
+    func saveIdleTimerState(_ isDisabled: Bool) {
+        UserDefaults.standard.set(isDisabled, forKey: Keys.idleTimerWasDisabled)
+    }
+    
+    func loadIdleTimerState() -> Bool {
+        return UserDefaults.standard.bool(forKey: Keys.idleTimerWasDisabled)
+    }
+    
+    func restoreIdleTimerStateOnAppLaunch() {
+        // On app launch, check if we had disabled the idle timer previously
+        // This helps recover from unexpected app termination
+        let wasDisabled = loadIdleTimerState()
+        if wasDisabled {
+            // If it was disabled, we probably had an alarm set
+            // The app will update this properly when it fully initializes
+            print("⚠️ Idle timer was disabled on last app session - will be updated based on current alarm state")
+        }
     }
 }
 

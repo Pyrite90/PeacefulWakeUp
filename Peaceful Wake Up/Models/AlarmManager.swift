@@ -47,7 +47,7 @@ class AlarmManager: ObservableObject, AlarmManaging {
         if let normalizedTime = calendar.date(from: components) {
             // Check if the alarm time is in the past (earlier today)
             let now = Date()
-            if normalizedTime <= now {
+            if normalizedTime < now {
                 // If alarm time is in the past, schedule it for tomorrow
                 if let tomorrowAlarmTime = calendar.date(byAdding: .day, value: 1, to: normalizedTime) {
                     alarmTime = tomorrowAlarmTime

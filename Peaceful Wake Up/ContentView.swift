@@ -53,9 +53,13 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
             backgroundTaskManager.handleAppGoingToBackground()
+            // Ensure idle timer state is preserved when app goes to background
+            updateIdleTimerForAlarmState()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             backgroundTaskManager.handleAppReturningToForeground()
+            // Restore idle timer state when app becomes active
+            updateIdleTimerForAlarmState()
         }
         .onReceive(timer) { _ in
             currentTime = Date()
@@ -231,12 +235,22 @@ struct ContentView: View {
     // MARK: - Idle Timer Management
     private func updateIdleTimerForAlarmState() {
         // Only prevent phone from locking when alarm is set
-        UIApplication.shared.isIdleTimerDisabled = alarmManager.isAlarmSet
+        let shouldDisableIdleTimer = alarmManager.isAlarmSet
         
-        if alarmManager.isAlarmSet {
-            print("🔒 Phone lock disabled - alarm is set")
-        } else {
-            print("🔓 Phone lock enabled - no alarm set")
+        // Only update if the state actually changed to avoid unnecessary work
+        if UIApplication.shared.isIdleTimerDisabled != shouldDisableIdleTimer {
+            UIApplication.shared.isIdleTimerDisabled = shouldDisableIdleTimer
+            
+            // Save the state for recovery in case of unexpected termination
+            appStateManager.saveIdleTimerState(shouldDisableIdleTimer)
+            
+            if shouldDisableIdleTimer {
+                print("🔒 Phone lock disabled - alarm is set")
+                AppLogger.info("Idle timer disabled - preventing device sleep", category: .system)
+            } else {
+                print("🔓 Phone lock enabled - no alarm set")
+                AppLogger.info("Idle timer enabled - allowing device sleep", category: .system)
+            }
         }
     }
     
@@ -249,6 +263,9 @@ struct ContentView: View {
     private func setupApp() {
         AppLogger.info("App setup started", category: .system)
         let measurement = PerformanceMeasurement(operation: "App Setup", category: .system)
+        
+        // Check for previous idle timer state
+        appStateManager.restoreIdleTimerStateOnAppLaunch()
         
         // Setup managers
         brightnessManager.setupBrightness()
@@ -274,7 +291,11 @@ struct ContentView: View {
         
         performanceMetrics.logMetrics()
         notificationManager.removeNotificationObservers()
+        
+        // Always re-enable idle timer on cleanup to prevent battery drain
         UIApplication.shared.isIdleTimerDisabled = false
+        AppLogger.info("Idle timer re-enabled during app cleanup", category: .system)
+        
         audioManager.stopAlarmSound()
         audioManager.cleanupAudioResources()
         backgroundTaskManager.endBackgroundTask()
